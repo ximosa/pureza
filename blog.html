@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Webgae</title>
+    <meta name="description" content="Creamos sitios web bonitos y modernos. Con las mejores herramientas y componentes Rápidos, seguros y optimizados para el SEO.">
+<meta name="keywords" content="experto wordpress, trabajos wordpres, Web Full-Stack">
+  <link href="https://cdn.jsdelivr.net/npm/beercss@3.7.12/dist/cdn/beer.min.css" rel="stylesheet">
+<script type="module" src="https://cdn.jsdelivr.net/npm/beercss@3.7.12/dist/cdn/beer.min.js"></script>
+<script src="script.js"></script>
+</head>
+<body>
+  <div id="header"></div>
+  <div id="inicio"></div>
+    <div style="max-width: 800px;margin: auto;padding:1rem;">
+      <h1>Blog</h1>
+      <div class="field label border">
+        <select id="categorias" onchange="filtrarPorCategoria(this.value)">
+          <option value="">Todas las categorías</option>
+        </select>
+        <label>Categorías</label>
+      </div>
+      <div class="medium-space"></div>
+      <div id="posts"></div>
+      <div class="large-space"></div>
+      <div class="center-align">
+        <button id="anterior" onclick="cambiarPagina('anterior')" disabled>Anterior</button>
+        <span id="info-pagina">Página 1</span>
+        <button id="siguiente" onclick="cambiarPagina('siguiente')">Siguiente</button>
+      </div>
+    </div>
+  <div id="footer"></div>
+  
+ </body>
+ <script type="module" src="main.js"></script>
+ <script>
+    const API_KEY = 'AIzaSyBFBbH1SQkSZf1LJzammWAe2karh5mG9rQ';
+    const BLOG_ID = '2756493429384988662';
+    const POSTS_POR_PAGINA = 5;
+    
+    let paginaActual = 1;
+    let tokenSiguiente = '';
+    let tokenAnterior = [];
+    let categoriaSeleccionada = '';
+
+    function crearSlug(texto) {
+      return texto
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/-+/g, '-')
+        .replace(/^-+|-+$/g, '')
+        .substring(0, 100);
+    }
+
+    function crearExtracto(contenidoHTML, longitud = 200) {
+      const temp = document.createElement('div');
+      temp.innerHTML = contenidoHTML;
+      const texto = temp.textContent || temp.innerText;
+      return texto.length > longitud ? texto.substring(0, longitud) + '...' : texto;
+    }
+
+    function scrollToTop() {
+      const inicioElement = document.getElementById('inicio');
+      if (inicioElement) {
+        inicioElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }
+
+    async function obtenerCategorias() {
+      try {
+        // Primero obtenemos todos los posts para extraer las categorías únicas
+        const url = `https://www.googleapis.com/blogger/v3/blogs/${BLOG_ID}/posts?key=${API_KEY}&maxResults=500`;
+        const response = await fetch(url);
+        const data = await response.json();
+        const posts = data.items || [];
+        
+        // Creamos un Set para almacenar categorías únicas
+        const categoriasUnicas = new Set();
+        
+        // Extraemos las categorías de cada post
+        posts.forEach(post => {
+          if (post.labels && Array.isArray(post.labels)) {
+            post.labels.forEach(label => categoriasUnicas.add(label));
+          }
+        });
+        
+        // Convertimos el Set a Array y ordenamos alfabéticamente
+        const categorias = Array.from(categoriasUnicas).sort();
+        
+        // Actualizamos el select con las categorías
+        const selectCategorias = document.getElementById('categorias');
+        // Limpiamos las opciones existentes excepto la primera (Todas las categorías)
+        while (selectCategorias.options.length > 1) {
+          selectCategorias.remove(1);
+        }
+        
+        // Agregamos las categorías al select
+        categorias.forEach(categoria => {
+          const option = document.createElement('option');
+          option.value = categoria;
+          option.textContent = categoria;
+          selectCategorias.appendChild(option);
+        });
+
+        console.log('Categorías cargadas:', categorias);
+      } catch (error) {
+        console.error("Error al obtener las categorías:", error);
+      }
+    }
+
+    function filtrarPorCategoria(categoria) {
+      categoriaSeleccionada = categoria;
+      paginaActual = 1;
+      tokenAnterior = [];
+      tokenSiguiente = '';
+      obtenerPosts();
+    }
+
+    async function obtenerPosts(pageToken = '') {
+      try {
+        scrollToTop();
+        
+        let url = `https://www.googleapis.com/blogger/v3/blogs/${BLOG_ID}/posts?key=${API_KEY}&maxResults=${POSTS_POR_PAGINA}${pageToken ? '&pageToken=' + pageToken : ''}`;
+        
+        if (categoriaSeleccionada) {
+          url += `&labels=${encodeURIComponent(categoriaSeleccionada)}`;
+        }
+
+        const response = await fetch(url);
+        const data = await response.json();
+        const posts = data.items || [];
+        
+        tokenSiguiente = data.nextPageToken || '';
+        
+        document.getElementById('siguiente').disabled = !tokenSiguiente;
+        document.getElementById('anterior').disabled = paginaActual === 1;
+        document.getElementById('info-pagina').textContent = `Página ${paginaActual}`;
+
+        const postsContainer = document.getElementById('posts');
+        postsContainer.innerHTML = '';
+
+        posts.forEach(post => {
+          let imagenUrl = 'https://via.placeholder.com/150';
+          if (post.content) {
+            const imgMatch = post.content.match(/<img.+?src="(.*?)"/);
+            if (imgMatch) {
+              imagenUrl = imgMatch[1];
+            }
+          }
+
+          const extracto = crearExtracto(post.content);
+          const slug = crearSlug(post.title);
+          const postUrl = `post.html?slug=${slug}&id=${post.id}`;
+
+          const postHTML = `
+            <div class="post">
+                <div class="row">
+              <div><img class="left-round medium" src="${imagenUrl}" alt="${post.title}"></div>
+              <div class="max"><h2 class="small"><a href="${postUrl}">${post.title}</a></h2></div>
+                </div>
+              <p>${extracto}</p>
+                
+               <div class="small-space"></div>
+                 <div class="right-align">
+              <a class="link large-text underline" href="${postUrl}" class="ver-mas">Ver más</a> 
+                 </div>
+              <div class="small-space"></div>
+            </div>
+              <hr class="medium">
+          `;
+          postsContainer.innerHTML += postHTML;
+        });
+
+      } catch (error) {
+        console.error("Error al obtener los posts:", error);
+      }
+    }
+
+    async function cambiarPagina(direccion) {
+      if (direccion === 'siguiente' && tokenSiguiente) {
+        tokenAnterior.push(tokenSiguiente);
+        paginaActual++;
+        await obtenerPosts(tokenSiguiente);
+      } else if (direccion === 'anterior' && paginaActual > 1) {
+        paginaActual--;
+        tokenAnterior.pop();
+        const tokenPaginaAnterior = tokenAnterior[tokenAnterior.length - 1] || '';
+        await obtenerPosts(tokenPaginaAnterior);
+      }
+    }
+
+    // Cargar categorías y primera página
+    obtenerCategorias();
+    obtenerPosts();
+  </script>
+</html>
