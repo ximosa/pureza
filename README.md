@@ -1,3 +1,35 @@
+# Webgae - Desarrollo Web con JavaScript Puro
+
+## Arquitectura de Componentes
+Este proyecto implementa una arquitectura de componentes utilizando JavaScript vanilla, demostrando cómo crear una aplicación web modular sin dependencia de frameworks.
+
+## Estructura de Archivos
+
+### Páginas HTML
+- `index.html` - Página principal
+- `about.html` - Página Sobre Nosotros
+- `blog.html` - Listado del Blog
+- `post.html` - Plantilla para posts individuales
+- `contacto.html` - Página de Contacto
+- `template.html` - Plantilla base
+
+### Componentes
+- `header.html` - Componente de navegación superior
+- `footer.html` - Componente del pie de página
+
+### JavaScript
+- `main.js` - Maneja la inyección de componentes mediante IDs
+- `script.js` - Lógica de la aplicación y utilidades
+
+## Funcionamiento de Componentes
+
+Los componentes se implementan mediante una arquitectura simple y efectiva:
+
+1. Los archivos HTML incluyen elementos con IDs específicos:
+```html
+<div id="header"></div>
+<div id="footer"></div>
+
 # Webgae - Agencia de Diseño y Desarrollo Web
 
 ## Descripción
